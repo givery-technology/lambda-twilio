@@ -11,21 +11,22 @@ import org.apache.commons.lang.exception.ExceptionUtils
 
 import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success}
 
 class App {
 
-  val encryptedAccountSid = ""
-  val encryptedAuthToken = ""
-  val encryptedNumbers = ""
-  val fromNumber = ""
+  val encryptedAccountSid = "CiA24j/cGdUPG0yDaUxqUu1V4R19AY+jinRS1F/nmsh0ZhKpAQEBAgB4NuI/3BnVDxtMg2lMalLtVeEdfQGPo4p0UtRf55rIdGYAAACAMH4GCSqGSIb3DQEHBqBxMG8CAQAwagYJKoZIhvcNAQcBMB4GCWCGSAFlAwQBLjARBAwsa/96oLbfzcA82kACARCAPfm90xv05awO0QRVdaqQrLikgaeMUhGplijtmwGTMmlaMYpynLPoTPbKXQx8KWRnzK4qkkeR17uIEuS3lRQ="
+  val encryptedAuthToken = "CiC1gS9AWLX+bVS9RKRqNkn13jMa04FRvFqtwdX/xgKPihKnAQEBAgB4tYEvQFi1/m1UvUSkajZJ9d4zGtOBUbxarcHV/8YCj4oAAAB+MHwGCSqGSIb3DQEHBqBvMG0CAQAwaAYJKoZIhvcNAQcBMB4GCWCGSAFlAwQBLjARBAzeDD4Zd9moAiuypyICARCAO1irA71k5TNWcw/yUACwakYPQz0BWR15pucj6f2qL1sj+OVgrN6EdkA0EQwqf5bShTS457OvsNf7se6a"
+  val encryptedNumbers = "CiDANawXFaZJirHwhDlUwcf+TD4bTj2HAcDlvSqlXWhBIxKgAQEBAgB4wDWsFxWmSYqx8IQ5VMHH/kw+G049hwHA5b0qpV1oQSMAAAB3MHUGCSqGSIb3DQEHBqBoMGYCAQAwYQYJKoZIhvcNAQcBMB4GCWCGSAFlAwQBLjARBAybNaJS62OVpBOIAI0CARCANIJkkyGnwR1emMxsBYY5aVdl7gtMb/S0mS8IIAE7Z/6B4SVdvvyqd1vJsRMQYxFLxZKdBG4="
+  val fromNumber = "+815031886131"
 
-  def handler(ipAddress: String, context: Context) {
-    (for {
+  def handler(ipAddress: String, context: Context): String = {
+    val f = (for {
       accontSid <- Future(decrypt(encryptedAccountSid))
       authToken <- Future(decrypt(encryptedAuthToken))
-      numbers <- Future(decrypt(encryptedNumbers).split(',').map(_.toInt))
+      numbers <- Future(decrypt(encryptedNumbers).split(','))
     } yield {
       val client = new TwilioRestClient(accontSid, authToken)
       numbers.map { number =>
@@ -33,10 +34,8 @@ class App {
         val status = client.getAccount().getCallFactory.create(params).getStatus
         s"$number: $status"
       }.mkString(System.lineSeparator())
-    }) onComplete {
-      case Success(log) => println(log)
-      case Failure(t) => System.err.println(ExceptionUtils.getStackTrace(t))
-    }
+    })
+    Await.result(f, Duration.Inf)
   }
 
   def decrypt(encryptedText: String) = {
