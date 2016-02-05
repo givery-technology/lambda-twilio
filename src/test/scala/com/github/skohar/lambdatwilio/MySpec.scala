@@ -1,9 +1,9 @@
 package com.github.skohar.lambdatwilio
 
-import org.scalatest.FlatSpec
+import org.scalatest.{FlatSpec, Matchers}
 
-class MySpec extends FlatSpec {
+class MySpec extends FlatSpec with Matchers {
   "decrypt sid" should "" in {
-    new App().handler(null, null)
+    noException should be thrownBy new App().call
   }
 }

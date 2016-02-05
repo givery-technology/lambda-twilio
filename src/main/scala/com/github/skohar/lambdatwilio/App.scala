@@ -7,13 +7,11 @@ import com.amazonaws.services.kms.AWSKMSClient
 import com.amazonaws.services.kms.model.DecryptRequest
 import com.amazonaws.services.lambda.runtime.Context
 import com.twilio.sdk.TwilioRestClient
-import org.apache.commons.lang.exception.ExceptionUtils
 
 import scala.collection.JavaConversions._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration
-import scala.util.{Failure, Success}
+import scala.concurrent.{Await, Future}
 
 class App {
 
@@ -22,19 +20,24 @@ class App {
   val encryptedNumbers = "CiDANawXFaZJirHwhDlUwcf+TD4bTj2HAcDlvSqlXWhBIxKgAQEBAgB4wDWsFxWmSYqx8IQ5VMHH/kw+G049hwHA5b0qpV1oQSMAAAB3MHUGCSqGSIb3DQEHBqBoMGYCAQAwYQYJKoZIhvcNAQcBMB4GCWCGSAFlAwQBLjARBAybNaJS62OVpBOIAI0CARCANIJkkyGnwR1emMxsBYY5aVdl7gtMb/S0mS8IIAE7Z/6B4SVdvvyqd1vJsRMQYxFLxZKdBG4="
   val fromNumber = "+815031886131"
 
-  def handler(ipAddress: String, context: Context): String = {
-    val f = (for {
-      accontSid <- Future(decrypt(encryptedAccountSid))
+  def handler(unused: String, context: Context): String = call
+
+  def call = {
+    val f = for {
+      accountSid <- Future(decrypt(encryptedAccountSid))
       authToken <- Future(decrypt(encryptedAuthToken))
       numbers <- Future(decrypt(encryptedNumbers).split(','))
     } yield {
-      val client = new TwilioRestClient(accontSid, authToken)
-      numbers.map { number =>
-        val params = Map("From" -> fromNumber, "Url" -> "http://demo.twilio.com/docs/voice.xml", "To" -> s"+$number")
-        val status = client.getAccount().getCallFactory.create(params).getStatus
-        s"$number: $status"
-      }.mkString(System.lineSeparator())
-    })
+      val fi = Future.traverse(numbers) { number =>
+        Future {
+          val client = new TwilioRestClient(accountSid, authToken)
+          val params = Map("From" -> fromNumber, "Url" -> "http://demo.twilio.com/docs/voice.xml", "To" -> s"+$number")
+          val status = client.getAccount().getCallFactory.create(params).getStatus
+          s"$number: $status"
+        }
+      }.map(_.mkString(System.lineSeparator()))
+      Await.result(fi, Duration.Inf)
+    }
     Await.result(f, Duration.Inf)
   }
 
