@@ -1,4 +1,5 @@
 #!/bin/bash -eu
+sbt clean &&\
 sbt assembly && \
 aws lambda update-function-code \
   --function-name $FUNCTION_NAME \
