@@ -28,7 +28,7 @@ class App {
       authToken <- Future(decrypt(encryptedAuthToken))
       numbers <- Future(decrypt(encryptedNumbers).split(','))
     } yield {
-      val fi = Future.traverse(numbers) { number =>
+      val fi = Future.traverse(numbers.toList) { number =>
         Future {
           val client = new TwilioRestClient(accountSid, authToken)
           val params = Map("From" -> fromNumber, "Url" -> "http://demo.twilio.com/docs/voice.xml", "To" -> s"+$number")
