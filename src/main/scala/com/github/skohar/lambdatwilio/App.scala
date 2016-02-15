@@ -6,6 +6,7 @@ import java.util.Base64
 import com.amazonaws.services.kms.AWSKMSClient
 import com.amazonaws.services.kms.model.DecryptRequest
 import com.amazonaws.services.lambda.runtime.Context
+import com.amazonaws.services.lambda.runtime.events.SNSEvent
 import com.twilio.sdk.TwilioRestClient
 
 import scala.collection.JavaConversions._
@@ -20,10 +21,7 @@ class App {
   val encryptedNumbers = "CiDANawXFaZJirHwhDlUwcf+TD4bTj2HAcDlvSqlXWhBIxKgAQEBAgB4wDWsFxWmSYqx8IQ5VMHH/kw+G049hwHA5b0qpV1oQSMAAAB3MHUGCSqGSIb3DQEHBqBoMGYCAQAwYQYJKoZIhvcNAQcBMB4GCWCGSAFlAwQBLjARBAybNaJS62OVpBOIAI0CARCANIJkkyGnwR1emMxsBYY5aVdl7gtMb/S0mS8IIAE7Z/6B4SVdvvyqd1vJsRMQYxFLxZKdBG4="
   val fromNumber = "+815031886131"
 
-  def handler(unused: String, context: Context): String = {
-    println(unused)
-    call
-  }
+  def handler(event: SNSEvent, context: Context): String = call
 
   def call = {
     val f = for {
