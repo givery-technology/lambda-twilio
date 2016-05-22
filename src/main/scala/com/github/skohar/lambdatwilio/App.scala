@@ -21,15 +21,14 @@ class App {
   def handler(event: SNSEvent, context: Context): String = (for {
     config <- App.description2config(context).leftMap(ExceptionUtils.getStackTrace)
   } yield try {
-    val fi = Future.traverse(config.numbers) { number =>
-      Future {
-        val client = new TwilioRestClient(config.accountSid, config.authToken)
-        val params = Map("From" -> config.fromNumber, "Url" -> "http://demo.twilio.com/docs/voice.xml", "To" -> number)
-        val status = client.getAccount().getCallFactory.create(params).getStatus
-        s"$number: $status"
-      }
-    }.map(_.mkString(System.lineSeparator()))
-    Await.result(fi, Duration.Inf)
+    val fs = config.numbers.map(number => Future {
+      val client = new TwilioRestClient(config.accountSid, config.authToken)
+      val params = Map("From" -> config.fromNumber, "Url" -> "http://demo.twilio.com/docs/voice.xml", "To" -> number)
+      val status = client.getAccount().getCallFactory.create(params).getStatus
+      s"$number: $status"
+    })
+    val f = Future.sequence(fs).map(_.mkString(System.lineSeparator()))
+    Await.result(f, Duration.Inf)
   } catch {
     case t: Throwable =>
       val stackTraceString = ExceptionUtils.getStackTrace(t)
@@ -45,8 +44,7 @@ object App {
     new SlackApi(config.slackWebHook).call(new SlackMessage("lambda:debug", s"``` $text ```"))
 
   def description2config(context: Context) = \/.fromEither(allCatch either {
-    val client = new AWSLambdaClient()
-    val function = client.getFunction(new GetFunctionRequest().withFunctionName(context.getFunctionName))
+    val function = new AWSLambdaClient().getFunction(new GetFunctionRequest().withFunctionName(context.getFunctionName))
     val description = function.getConfiguration.getDescription
     Json.parse(description).as[LambdaConfig]
   })
